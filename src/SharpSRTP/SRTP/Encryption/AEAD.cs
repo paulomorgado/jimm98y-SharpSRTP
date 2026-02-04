@@ -29,6 +29,11 @@ namespace SharpSRTP.SRTP.Encryption
     {
         public static void Encrypt(IAeadBlockCipher engine, bool encrypt, byte[] payload, int offset, int length, byte[] iv, byte[] K_e, int N_tag, byte[] associatedData)
         {
+            Encrypt(engine, encrypt, payload, offset, length, iv, new KeyParameter(K_e), N_tag, associatedData);
+        }
+
+        public static void Encrypt(IAeadBlockCipher engine, bool encrypt, byte[] payload, int offset, int length, byte[] iv, KeyParameter K_e, int N_tag, byte[] associatedData)
+        {
             int payloadSize = length - offset;
 
             int expectedLength = engine.GetOutputSize(payloadSize);
@@ -37,24 +42,25 @@ namespace SharpSRTP.SRTP.Encryption
                 throw new ArgumentOutOfRangeException("Payload is too small!");
             }
 
-            var parameters = new AeadParameters(new KeyParameter(K_e), N_tag << 3, iv, associatedData);
+            var parameters = new AeadParameters(K_e, N_tag << 3, iv, associatedData);
             engine.Init(encrypt, parameters);
 
             int len = engine.ProcessBytes(payload, offset, payloadSize, payload, offset);
-            
+
             // throws when the MAC fails to match
             engine.DoFinal(payload, offset + len);
         }
 
         public static byte[] GenerateMessageKeyIV(byte[] k_s, uint ssrc, ulong index)
         {
-            byte[] iv = new byte[12];
+            byte[] iv = GC.AllocateUninitializedArray<byte>(12);
             Buffer.BlockCopy(k_s, 0, iv, 0, 12);
 
-            iv[2] ^= (byte)((ssrc >> 24) & 0xFF);
-            iv[3] ^= (byte)((ssrc >> 16) & 0xFF);
-            iv[4] ^= (byte)((ssrc >> 8) & 0xFF);
-            iv[5] ^= (byte)(ssrc & 0xFF);
+            // XOR SSRC at offset 2
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(2, 4),
+                System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(iv.AsSpan(2, 4)) ^ ssrc);
+
+            // XOR index at offset 6 (6 bytes for 48-bit index)
             iv[6] ^= (byte)((index >> 40) & 0xFF);
             iv[7] ^= (byte)((index >> 32) & 0xFF);
             iv[8] ^= (byte)((index >> 24) & 0xFF);

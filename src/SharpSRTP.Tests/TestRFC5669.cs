@@ -28,7 +28,6 @@ using SharpSRTP.SRTP.Authentication;
 using SharpSRTP.SRTP.Encryption;
 using SharpSRTP.SRTP.Readers;
 using System;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -85,9 +84,9 @@ namespace SharpSRTP.Tests
             byte[] auth = HMAC.GenerateAuthTag(hmac, payloadRaw, 0, length);
             */
             // However, it makes little sense to do it that way, so it's likely a bug and I've updated the test data with a different authTag produced by the standard algorithm
-            byte[] auth = HMAC.GenerateAuthTag(hmac, payload, 0, length + 4); 
+            byte[] auth = HMAC.GenerateAuthTag(hmac, payload, 0, length + 4);
             System.Buffer.BlockCopy(auth, 0, payload, length, n_tag); // we don't append ROC in SRTP
-            var result = payload.Take(length + n_tag).ToArray();
+            var result = payload.AsSpan(0, length + n_tag).ToArray();
 
             string srtpResult = Convert.ToHexString(result).ToLowerInvariant();
             Assert.AreEqual(srtp, srtpResult);
@@ -116,7 +115,7 @@ namespace SharpSRTP.Tests
             Buffer.BlockCopy(rtpBytes, 0, result, 0, rtpBytes.Length);
 
             var cipher = new GcmBlockCipher(new SeedEngine());
-            byte[] associatedData = result.Take(offset).ToArray();
+            byte[] associatedData = result.AsSpan(0, offset).ToArray();
             AEAD.Encrypt(cipher, true, result, offset, rtpBytes.Length, iv, k_e, n_tag, associatedData);
 
             string encryptedRTP = Convert.ToHexString(result).ToLowerInvariant();
@@ -146,7 +145,7 @@ namespace SharpSRTP.Tests
             Buffer.BlockCopy(rtpBytes, 0, result, 0, rtpBytes.Length);
 
             var cipher = new CcmBlockCipher(new SeedEngine());
-            byte[] associatedData = result.Take(offset).ToArray();
+            byte[] associatedData = result.AsSpan(0, offset).ToArray();
             AEAD.Encrypt(cipher, true, result, offset, rtpBytes.Length, iv, k_e, n_tag, associatedData);
 
             string encryptedRTP = Convert.ToHexString(result).ToLowerInvariant();

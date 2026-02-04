@@ -37,17 +37,14 @@ namespace SharpSRTP.SRTP.Encryption
 
         private static byte[] GenerateRtpIV(byte[] rtpPacket, uint ROC)
         {
-            byte[] iv = new byte[BLOCK_SIZE];
+            byte[] iv = GC.AllocateUninitializedArray<byte>(BLOCK_SIZE);
             iv[0] = 0;
 
             // M + PT + SEQ + TS + SSRC
             Buffer.BlockCopy(rtpPacket, 1, iv, 1, 11);
             
             // ROC
-            iv[12] = (byte)((ROC >> 24) & 0xFF);
-            iv[13] = (byte)((ROC >> 16) & 0xFF);
-            iv[14] = (byte)((ROC >> 8) & 0xFF);
-            iv[15] = (byte)(ROC & 0xFF);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(12, 4), ROC);
             return iv;
         }
 
@@ -60,19 +57,13 @@ namespace SharpSRTP.SRTP.Encryption
 
         private static byte[] GenerateRtcpIV(byte[] rtcpPacket, uint index)
         {
-            byte[] iv = new byte[BLOCK_SIZE];
+            byte[] iv = GC.AllocateUninitializedArray<byte>(BLOCK_SIZE);
 
             // 0..0
-            iv[0] = 0;
-            iv[1] = 0;
-            iv[2] = 0;
-            iv[3] = 0;
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(0, 4), 0);
 
             // E + SRTCP index
-            iv[4] = (byte)((index >> 24) & 0xFF);
-            iv[5] = (byte)((index >> 16) & 0xFF);
-            iv[6] = (byte)((index >> 8) & 0xFF);
-            iv[7] = (byte)(index & 0xFF);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(4, 4), index);
 
             // V + P + RC + PT + L + SSRC
             Buffer.BlockCopy(rtcpPacket, 0, iv, BLOCK_SIZE - 8, 8);
@@ -109,19 +100,17 @@ namespace SharpSRTP.SRTP.Encryption
         {
             int payloadSize = length - offset;
             int blockCount = payloadSize / BLOCK_SIZE + payloadSize % BLOCK_SIZE;
-            byte[] cipher = new byte[blockCount * BLOCK_SIZE];
+            byte[] cipher = GC.AllocateUninitializedArray<byte>(blockCount * BLOCK_SIZE);
 
             int blockNo = 0;
-            byte[] iv2 = new byte[iv.Length];
+            byte[] iv2 = GC.AllocateUninitializedArray<byte>(iv.Length);
             for (uint j = 0; j < blockCount; j++)
             {
                 Buffer.BlockCopy(iv, 0, iv2, 0, iv.Length);
 
                 // IV' xor j
-                iv2[12] ^= (byte)((j >> 24) & 0xff);
-                iv2[13] ^= (byte)((j >> 16) & 0xff);
-                iv2[14] ^= (byte)((j >> 8) & 0xff);
-                iv2[15] ^= (byte)(j & 0xff);
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(iv2.AsSpan(12, 4),
+                    System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(iv2.AsSpan(12, 4)) ^ j);
 
                 // IV' xor S(-1) xor j
                 if (blockNo > 0)

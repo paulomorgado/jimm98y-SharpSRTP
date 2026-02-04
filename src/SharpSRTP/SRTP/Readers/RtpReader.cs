@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
 // SOFTWARE.
 
-using System.Linq;
+using System;
 
 namespace SharpSRTP.SRTP.Readers
 {
@@ -62,7 +62,7 @@ namespace SharpSRTP.SRTP.Readers
         {
             int length = ReadHeaderLenWithoutExtensions(payload);
             int extLen = ReadExtensionsLength(payload);
-            return payload.Skip(length).Take(extLen).ToArray();
+            return payload.AsSpan(length, extLen).ToArray();
         }
     }
 }

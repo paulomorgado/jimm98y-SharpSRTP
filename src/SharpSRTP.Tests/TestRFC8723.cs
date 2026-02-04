@@ -21,7 +21,6 @@
 
 using SharpSRTP.DTLSSRTP;
 using System;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -47,13 +46,13 @@ namespace SharpSRTP.Tests
             Buffer.BlockCopy(rtpBytes, 0, srtpBytes, 0, rtpBytes.Length);
             int ret = context.ProtectRtp(srtpBytes, rtpBytes.Length, out int len);
 
-            string srtpString = Convert.ToHexString(srtpBytes.Take(len).ToArray()).ToLowerInvariant();
+            string srtpString = Convert.ToHexString(srtpBytes.AsSpan(0, len).ToArray()).ToLowerInvariant();
             Assert.AreEqual(expectedSrtp, srtpString);
 
             var decodeContext = DtlsSrtpProtocol.CreateSrtpServerSessionContext(keys);
             ret = decodeContext.UnprotectRtp(srtpBytes, srtpBytes.Length, out int olen);
 
-            string rtpString = Convert.ToHexString(srtpBytes.Take(olen).ToArray()).ToLowerInvariant();
+            string rtpString = Convert.ToHexString(srtpBytes.AsSpan(0, olen).ToArray()).ToLowerInvariant();
             Assert.AreEqual(rtp, rtpString);
         }
     }

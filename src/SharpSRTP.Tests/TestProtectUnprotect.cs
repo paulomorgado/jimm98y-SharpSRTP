@@ -22,7 +22,6 @@
 using SharpSRTP.SRTP;
 using System;
 using System.Data;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -35,19 +34,21 @@ namespace SharpSRTP.Tests
         {
             byte[] masterKeySaltBytes = Convert.FromBase64String(masterKeySalt);
             byte[] rtpBytes = Convert.FromHexString(rtp);
-            byte[] srtpBytes = rtpBytes.Concat(new byte[10]).ToArray();
+            byte[] srtpBytes = GC.AllocateUninitializedArray<byte>(rtpBytes.Length + 10);
+            rtpBytes.AsSpan().CopyTo(srtpBytes);
+            srtpBytes.AsSpan(rtpBytes.Length, 10).Clear();
 
             byte[] MKI = null;
             var keys = SrtpProtocol.CreateMasterKeys(SrtpCryptoSuites.AES_CM_128_HMAC_SHA1_80, MKI, masterKeySaltBytes);
             var context = SrtpProtocol.CreateSrtpSessionContext(keys);
             int ret = context.ProtectRtp(srtpBytes, rtpBytes.Length, out int len);
 
-            string srtpString = Convert.ToHexString(srtpBytes.Take(len).ToArray()).ToLowerInvariant();
+            string srtpString = Convert.ToHexString(srtpBytes.AsSpan(0, len).ToArray()).ToLowerInvariant();
             Assert.AreEqual(srtp, srtpString);
 
             context.UnprotectRtp(srtpBytes, srtpBytes.Length, out int olen);
 
-            string rtpString = Convert.ToHexString(srtpBytes.Take(olen).ToArray()).ToLowerInvariant();
+            string rtpString = Convert.ToHexString(srtpBytes.AsSpan(0, olen).ToArray()).ToLowerInvariant();
             Assert.AreEqual(rtp, rtpString);
         }
 
