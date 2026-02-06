@@ -27,14 +27,20 @@ namespace SharpSRTP.DTLSSRTP
     public class DtlsSrtpKeys
     {
         public SrtpProtectionProfileConfiguration ProtectionProfile { get; }
-        public byte[] Mki { get; }
+        public ArraySegment<byte> Mki { get; }
 
-        public byte[] ClientWriteMasterKey { get; }
-        public byte[] ClientWriteMasterSalt { get; }
-        public byte[] ServerWriteMasterKey { get; }
-        public byte[] ServerWriteMasterSalt { get; }
+        public ArraySegment<byte> ClientWriteMasterKey { get; }
+        public ArraySegment<byte> ClientWriteMasterSalt { get; }
+        public ArraySegment<byte> ServerWriteMasterKey { get; }
+        public ArraySegment<byte> ServerWriteMasterSalt { get; }
 
-        public DtlsSrtpKeys(SrtpProtectionProfileConfiguration protectionProfile, byte[] mki = null)
+        public DtlsSrtpKeys(
+            SrtpProtectionProfileConfiguration protectionProfile,
+            ArraySegment<byte> clientWriteMasterKey,
+            ArraySegment<byte> clientWriteMasterSalt,
+            ArraySegment<byte> serverWriteMasterKey,
+            ArraySegment<byte> serverWriteMasterSalt,
+            ArraySegment<byte> mki = default)
         {
             this.ProtectionProfile = protectionProfile ?? throw new ArgumentNullException(nameof(protectionProfile));
             this.Mki = mki;
@@ -42,10 +48,15 @@ namespace SharpSRTP.DTLSSRTP
             int cipherKeyLen = protectionProfile.CipherKeyLength >> 3;
             int cipherSaltLen = protectionProfile.CipherSaltLength >> 3;
 
-            this.ClientWriteMasterKey = new byte[cipherKeyLen];
-            this.ClientWriteMasterSalt = new byte[cipherSaltLen];
-            this.ServerWriteMasterKey = new byte[cipherKeyLen];
-            this.ServerWriteMasterSalt = new byte[cipherSaltLen];
+            if (clientWriteMasterKey.Count != cipherKeyLen
+                || clientWriteMasterSalt.Count != cipherSaltLen
+                || serverWriteMasterKey.Count != cipherKeyLen
+                || serverWriteMasterSalt.Count != cipherSaltLen)
+
+            this.ClientWriteMasterKey = clientWriteMasterKey;
+            this.ClientWriteMasterSalt = clientWriteMasterSalt;
+            this.ServerWriteMasterKey = serverWriteMasterKey;
+            this.ServerWriteMasterSalt = serverWriteMasterSalt;
         }
     }
 }

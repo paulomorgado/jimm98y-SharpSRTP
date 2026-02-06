@@ -138,18 +138,28 @@ namespace SharpSRTP.DTLSSRTP
         {
             var srtpSecurityParams = DtlsProtectionProfiles[protectionProfile];
 
-            if(sharedSecret == null)
+            if (sharedSecret == null)
             {
                 throw new ArgumentNullException(nameof(sharedSecret));
             }
 
             int sharedSecretLength = (2 * (srtpSecurityParams.CipherKeyLength + srtpSecurityParams.CipherSaltLength)) >> 3;
-            if(sharedSecret.Length < sharedSecretLength)
+            if (sharedSecret.Length < sharedSecretLength)
             {
                 throw new ArgumentException("Invalid shared secret length.", nameof(sharedSecret));
             }
 
-            DtlsSrtpKeys keys = new DtlsSrtpKeys(srtpSecurityParams, mki);
+            var cipherKeyLen = srtpSecurityParams.CipherKeyLength >> 3;
+            var cipherSaltLen = srtpSecurityParams.CipherSaltLength >> 3;
+
+            var keys = (
+                ClientWriteMasterKey: new byte[cipherKeyLen], 
+                ClientWriteMasterSalt: new byte[cipherSaltLen], 
+                ServerWriteMasterKey:  new byte[cipherKeyLen], 
+                ServerWriteMasterSalt:  new byte[cipherSaltLen]);
+
+            var sharedSecret_ = new byte[sharedSecret.Length];
+            Buffer.BlockCopy(sharedSecret, 0, sharedSecret_, 0, sharedSecret.Length); // outer
 
             if (srtpSecurityParams.Cipher >= SrtpCiphers.DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM)
             {
@@ -173,7 +183,13 @@ namespace SharpSRTP.DTLSSRTP
                 Buffer.BlockCopy(sharedSecret, keys.ClientWriteMasterKey.Length + keys.ServerWriteMasterKey.Length + keys.ClientWriteMasterSalt.Length, keys.ServerWriteMasterSalt, 0, keys.ServerWriteMasterSalt.Length);
             }
 
-            return keys;
+            return new DtlsSrtpKeys(
+                srtpSecurityParams,
+                new ArraySegment<byte>(keys.ClientWriteMasterKey),
+                new ArraySegment<byte>(keys.ClientWriteMasterSalt),
+                new ArraySegment<byte>(keys.ServerWriteMasterKey),
+                new ArraySegment<byte>(keys.ServerWriteMasterSalt),
+                new ArraySegment<byte>(mki ?? Array.Empty<byte>()));
         }
 
         public static byte[] GenerateMki(int length)

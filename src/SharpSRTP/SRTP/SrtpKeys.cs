@@ -21,19 +21,18 @@
 
 using System;
 using System.Linq;
+using System.Reflection;
 
 namespace SharpSRTP.SRTP
 {
     public class SrtpKeys
     {
         public SrtpProtectionProfileConfiguration ProtectionProfile { get; }
-        public byte[] Mki { get; }
+        public ArraySegment<byte> Mki { get; }
 
-        private byte[] _masterKey;
-        private byte[] _masterSalt;
-        public byte[] MasterKey => _masterKey ?? (_masterKey = MasterKeySalt.AsSpan(0, ProtectionProfile.CipherKeyLength >> 3).ToArray());
-        public byte[] MasterSalt => _masterSalt ?? (_masterSalt = MasterKeySalt.AsSpan(ProtectionProfile.CipherKeyLength >> 3).ToArray());
-        public byte[] MasterKeySalt { get; }
+        public ArraySegment<byte> MasterKey { get; }
+        public ArraySegment<byte> MasterSalt { get; }
+        public ArraySegment<byte> MasterKeySalt { get; }
 
         public SrtpKeys(SrtpProtectionProfileConfiguration protectionProfile, byte[] masterKeySalt, byte[] mki = default)
         {
@@ -46,7 +45,7 @@ namespace SharpSRTP.SRTP
 #else
             this.ProtectionProfile = protectionProfile ?? throw new ArgumentNullException(nameof(protectionProfile));
 
-            this.MasterKeySalt = masterKeySalt ?? throw new ArgumentNullException(nameof(masterKeySalt));
+            this.MasterKeySalt = new ArraySegment<byte>(masterKeySalt ?? throw new ArgumentNullException(nameof(masterKeySalt)));
 #endif
 
             if (masterKeySalt.Length != (protectionProfile.CipherKeyLength + protectionProfile.CipherSaltLength) >> 3)
@@ -54,7 +53,10 @@ namespace SharpSRTP.SRTP
                 throw new ArgumentException($"'{masterKeySalt}' length does not match profile requirements", nameof(masterKeySalt));
             }
 
-            this.Mki = mki;
+            MasterKey = MasterKeySalt.Slice(0, ProtectionProfile.CipherKeyLength >> 3);
+            MasterSalt = MasterKeySalt.Slice(ProtectionProfile.CipherKeyLength >> 3);
+
+            this.Mki = new ArraySegment<byte>(mki ?? Array.Empty<byte>());
         }
     }
 }
