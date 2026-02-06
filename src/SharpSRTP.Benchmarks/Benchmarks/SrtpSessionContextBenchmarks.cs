@@ -1,11 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Columns;
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Environments;
-using BenchmarkDotNet.Jobs;
 using SharpSRTP.SRTP;
 using System;
-using static Org.BouncyCastle.Math.EC.ECCurve;
+
 
 #if !NET5_0_OR_GREATER
 using Convert2 = SharpSRTP.Tests.Convert;
@@ -15,8 +11,7 @@ using Convert2 = System.Convert;
 
 namespace SharpSRTP.Benchmarks
 {
-    [Config(typeof(Config))]
-    public class SrtpProtectUnprotectBenchmark
+    public class SrtpSessionContextBenchmarks
     {
         private const string MasterKeySaltBase64 = "n7z9GgmnJ4Bc2hC0prEf8KFCKv8EyG+4WrUOg7oi";
         private const string RtpHex = "80e1000103cb6bc84218a6a3001006c801123318f6882d06086141a9c44dfbfb7e9f1cf997eb257b77c732bcf779ae750b6493aff001815dcfc814a4fb96089153b0becc4e091f2632584ee88fc01701a0dc5111f3d7b201b0a5496972275d00e503d921370ecbdebc5ac4e54572e59ca65c29ce246b438659df04633d5d0452da1b9ce729670a616b4f5050df2c7de897ca16f5762d6df93da0134d6c3d2fedb178be2fbbfa3c702673c231d5af4f1c9b2fa791a19ef3a23aee2325dc633f19ebde33f0eeec8351cfa62bbbf9339d6b7e322ba3bb5e1d31a3956475cf450984d4a274d2583d1b80e0";
@@ -39,40 +34,9 @@ namespace SharpSRTP.Benchmarks
         }
 
         [Benchmark]
-        public void ProtectUnprotect()
+        public SrtpSessionContext CreateSrtpSessionContext()
         {
-            _context.ProtectRtp(_srtpBytes, _rtpBytes.Length, out var len);
-
-            _context.UnprotectRtp(_srtpBytes, len, out var _);
-        }
-
-        private class Config : ManualConfig
-        {
-            public Config()
-            {
-                string[] targetVersions = [
-                    "",
-                    "0.3.1",
-                ];
-
-                Runtime[] targetRuntimes = [CoreRuntime.Core80, CoreRuntime.Core10_0, ClrRuntime.Net481];
-
-                foreach (var targetRuntime in targetRuntimes)
-                {
-                    foreach (var version in targetVersions)
-                    {
-                        AddJob(Job.MediumRun
-                            .WithRuntime(targetRuntime)
-                            .WithMsBuildArguments($"/p:LibVersion={version}")
-                            .WithId(string.IsNullOrEmpty(version) ? "local" : $"Nuget-{version}")
-                        );
-                    }
-                }
-
-                HideColumns(Column.Arguments, Column.Error, Column.StdDev);
-
-                AddDiagnoser(BenchmarkDotNet.Diagnosers.MemoryDiagnoser.Default);
-            }
+            return SrtpProtocol.CreateSrtpSessionContext(_keys);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace SharpSRTP.Benchmarks
     {
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<SrtpProtectUnprotectBenchmark>();
+            BenchmarkRunner.Run(typeof(Program).Assembly, config: new Config());
         }
     }
 }

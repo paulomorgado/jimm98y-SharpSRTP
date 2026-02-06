@@ -29,18 +29,32 @@ namespace SharpSRTP.SRTP
         public SrtpProtectionProfileConfiguration ProtectionProfile { get; }
         public byte[] Mki { get; }
 
-        public byte[] MasterKey { get { return MasterKeySalt.Take(ProtectionProfile.CipherKeyLength >> 3).ToArray(); } }
-        public byte[] MasterSalt { get { return MasterKeySalt.Skip(ProtectionProfile.CipherKeyLength >> 3).ToArray(); } }
+        private byte[] _masterKey;
+        private byte[] _masterSalt;
+        public byte[] MasterKey => _masterKey ?? (_masterKey = MasterKeySalt.AsSpan(0, ProtectionProfile.CipherKeyLength >> 3).ToArray());
+        public byte[] MasterSalt => _masterSalt ?? (_masterSalt = MasterKeySalt.AsSpan(ProtectionProfile.CipherKeyLength >> 3).ToArray());
         public byte[] MasterKeySalt { get; }
 
-        public SrtpKeys(SrtpProtectionProfileConfiguration protectionProfile, byte[] mki = null)
+        public SrtpKeys(SrtpProtectionProfileConfiguration protectionProfile, byte[] masterKeySalt, byte[] mki = default)
         {
-            this.ProtectionProfile = protectionProfile ?? throw new ArgumentNullException(nameof(protectionProfile));
-            this.Mki = mki;
+#if NET8_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(protectionProfile);
+            this.ProtectionProfile = protectionProfile;
 
-            int cipherKeyLen = protectionProfile.CipherKeyLength >> 3;
-            int cipherSaltLen = protectionProfile.CipherSaltLength >> 3;
-            this.MasterKeySalt = new byte[cipherKeyLen + cipherSaltLen];
+            ArgumentNullException.ThrowIfNull(masterKeySalt);
+            this.MasterKeySalt = masterKeySalt;
+#else
+            this.ProtectionProfile = protectionProfile ?? throw new ArgumentNullException(nameof(protectionProfile));
+
+            this.MasterKeySalt = masterKeySalt ?? throw new ArgumentNullException(nameof(masterKeySalt));
+#endif
+
+            if (masterKeySalt.Length != (protectionProfile.CipherKeyLength + protectionProfile.CipherSaltLength) >> 3)
+            {
+                throw new ArgumentException($"'{masterKeySalt}' length does not match profile requirements", nameof(masterKeySalt));
+            }
+
+            this.Mki = mki;
         }
     }
 }

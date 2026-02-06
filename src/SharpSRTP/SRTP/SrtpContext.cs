@@ -281,15 +281,12 @@ namespace SharpSRTP.SRTP
 
                         if (Cipher >= SrtpCiphers.DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM)
                         {
-                            byte[] outerK_e = K_e.AsSpan(K_e.Length / 2).ToArray();
-                            byte[] outerK_he = K_he.AsSpan(K_he.Length / 2).ToArray();
-
                             var aesPayload = new AesEngine();
-                            aesPayload.Init(true, new KeyParameter(outerK_e));
+                            aesPayload.Init(true, new KeyParameter(K_e, K_e.Length / 2, K_e.Length / 2));
                             this.PayloadCTR = aesPayload;
 
                             var aesHeader = new AesEngine();
-                            aesHeader.Init(true, new KeyParameter(outerK_he));
+                            aesHeader.Init(true, new KeyParameter(K_he, K_he.Length / 2, K_he.Length / 2));
                             this.HeaderCTR = aesHeader;
                         }
                         else

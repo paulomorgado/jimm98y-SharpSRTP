@@ -120,11 +120,14 @@ namespace SharpSRTP.DTLSSRTP
                SecurityParameters.server_random
                )[length]
              */
+            byte[] prfSeed = GC.AllocateUninitializedArray<byte>(dtlsSecurityParameters.ClientRandom.Length + dtlsSecurityParameters.ServerRandom.Length);
+            Buffer.BlockCopy(dtlsSecurityParameters.ClientRandom, 0, prfSeed, 0, dtlsSecurityParameters.ClientRandom.Length);
+            Buffer.BlockCopy(dtlsSecurityParameters.ServerRandom, 0, prfSeed, dtlsSecurityParameters.ClientRandom.Length, dtlsSecurityParameters.ServerRandom.Length);
             byte[] sharedSecret = TlsUtilities.Prf(
                 dtlsSecurityParameters,
                 dtlsSecurityParameters.MasterSecret,
                 ExporterLabel.dtls_srtp, // The exporter label for this usage is "EXTRACTOR-dtls_srtp"
-                dtlsSecurityParameters.ClientRandom.Concat(dtlsSecurityParameters.ServerRandom).ToArray(),
+                prfSeed,
                 sharedSecretLength
                 ).Extract();
 

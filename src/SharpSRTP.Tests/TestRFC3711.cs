@@ -28,7 +28,6 @@ using SharpSRTP.SRTP.Authentication;
 using SharpSRTP.SRTP.Encryption;
 using SharpSRTP.SRTP.Readers;
 using System;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -37,7 +36,7 @@ namespace SharpSRTP.Tests
     /// </summary>
     [TestClass]
     public sealed class TestRFC3711
-    {       
+    {
         [DataRow("2B7E151628AED2A6ABF7158809CF4F3C", "F0F1F2F3F4F5F6F7F8F9FAFBFCFD0000", "E03EAD0935C95E80E166B16DD92B4EB4", 0u, (ushort)0, 0u, 0)]
         [DataRow("2B7E151628AED2A6ABF7158809CF4F3C", "F0F1F2F3F4F5F6F7F8F9FAFBFCFD0000", "D23513162B02D0F72A43A2FE4A5F97AB", 0u, (ushort)0, 0u, 1)]
         [DataRow("2B7E151628AED2A6ABF7158809CF4F3C", "F0F1F2F3F4F5F6F7F8F9FAFBFCFD0000", "41E95B3BB0A2E8DD477901E4FCA894C0", 0u, (ushort)0, 0u, 2)]
@@ -137,7 +136,8 @@ namespace SharpSRTP.Tests
             int n_tag = protectionProfile.AuthTagLength >> 3;
             byte[] auth = HMAC.GenerateAuthTag(hmac, payload, 0, length + 4);
             System.Buffer.BlockCopy(auth, 0, payload, length, n_tag); // we don't append ROC in SRTP
-            var result = payload.Take(length + n_tag).ToArray();
+            var result = new byte[length + n_tag];
+            Buffer.BlockCopy(payload, 0, result, 0, length + n_tag);
 
             string srtpResult = Convert.ToHexString(result).ToLowerInvariant();
             Assert.AreEqual(srtp, srtpResult);
@@ -190,7 +190,8 @@ namespace SharpSRTP.Tests
             int n_tag = protectionProfile.AuthTagLength >> 3;
             byte[] auth = HMAC.GenerateAuthTag(hmac, payload, 0, length + 4);
             System.Buffer.BlockCopy(auth, 0, payload, length + 4, n_tag); // we don't append ROC in SRTP
-            var result = payload.Take(length + 4 + n_tag).ToArray();
+            var result = new byte[length + 4 + n_tag];
+            Buffer.BlockCopy(payload, 0, result, 0, length + 4 + n_tag);
 
             string srtpResult = Convert.ToHexString(result).ToLowerInvariant();
             Assert.AreEqual(expectedSrtcp, srtpResult);

@@ -22,7 +22,6 @@
 using SharpSRTP.SRTP;
 using System;
 using System.Data;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -38,7 +37,9 @@ namespace SharpSRTP.Tests
         {
             byte[] masterKeyBytes = Convert.FromHexString(masterKey);
             byte[] masterSaltBytes = Convert.FromHexString(masterSalt);
-            byte[] masterKeySalt = masterKeyBytes.Concat(masterSaltBytes).ToArray();
+            byte[] masterKeySalt = new byte[masterKeyBytes.Length + masterSaltBytes.Length];
+            Buffer.BlockCopy(masterKeyBytes, 0, masterKeySalt, 0, masterKeyBytes.Length);
+            Buffer.BlockCopy(masterSaltBytes, 0, masterKeySalt, masterKeyBytes.Length, masterSaltBytes.Length);
             SrtpKeys keys = SrtpProtocol.CreateMasterKeys(cryptoSuite, null, masterKeySalt);
             SrtpSessionContext context = SrtpProtocol.CreateSrtpSessionContext(keys);
 

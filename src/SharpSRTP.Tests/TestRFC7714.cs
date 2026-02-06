@@ -26,7 +26,6 @@ using SharpSRTP.SRTP;
 using SharpSRTP.SRTP.Encryption;
 using SharpSRTP.SRTP.Readers;
 using System;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -76,7 +75,8 @@ namespace SharpSRTP.Tests
             Buffer.BlockCopy(rtpBytes, 0, result, 0, rtpBytes.Length);
 
             var cipher = new GcmBlockCipher(new AesEngine());
-            byte[] associatedData = result.Take(offset).ToArray();
+            byte[] associatedData = new byte[offset];
+            Buffer.BlockCopy(result, 0, associatedData, 0, offset);
             AEAD.Encrypt(cipher, true, result, offset, rtpBytes.Length, iv, k_e, n_tag, associatedData);
 
             string encryptedRTP = Convert.ToHexString(result).ToLowerInvariant();
@@ -103,10 +103,14 @@ namespace SharpSRTP.Tests
             byte[] iv = AEAD.GenerateMessageKeyIV(k_s, ssrc, index);
 
             var cipher = new GcmBlockCipher(new AesEngine());
-            byte[] associatedData = srtpBytes.Take(offset).ToArray();
+            byte[] associatedData = new byte[offset];
+            Buffer.BlockCopy(srtpBytes, 0, associatedData, 0, offset);
             AEAD.Encrypt(cipher, false, srtpBytes, offset, srtpBytes.Length, iv, k_e, n_tag, associatedData);
 
-            string result = Convert.ToHexString(srtpBytes.Take(srtpBytes.Length - n_tag).ToArray()).ToLowerInvariant();
+            int resultLen = srtpBytes.Length - n_tag;
+            byte[] resultArr = new byte[resultLen];
+            Buffer.BlockCopy(srtpBytes, 0, resultArr, 0, resultLen);
+            string result = Convert.ToHexString(resultArr).ToLowerInvariant();
             Assert.AreEqual(expectedRtp, result);
         }
 
@@ -143,7 +147,12 @@ namespace SharpSRTP.Tests
 
             var cipher = new GcmBlockCipher(new AesEngine());
             uint index = idx | SrtpContext.E_FLAG;
-            byte[] associatedData = srtcp.Take(offset).Concat(new byte[] { (byte)(index >> 24), (byte)(index >> 16), (byte)(index >> 8), (byte)index }).ToArray(); // associatedData include also index
+            byte[] associatedData = new byte[offset + 4];
+            Buffer.BlockCopy(srtcp, 0, associatedData, 0, offset);
+            associatedData[offset + 0] = (byte)(index >> 24);
+            associatedData[offset + 1] = (byte)(index >> 16);
+            associatedData[offset + 2] = (byte)(index >> 8);
+            associatedData[offset + 3] = (byte)index;
             AEAD.Encrypt(cipher, true, srtcp, offset, rtcpBytes.Length, iv, k_e, n_tag, associatedData);
 
             srtcp[rtcpBytes.Length + n_tag + 0] = (byte)(index >> 24);
@@ -168,17 +177,22 @@ namespace SharpSRTP.Tests
             int n_tag = protectionProfile.AuthTagLength >> 3;
             uint ssrc = RtcpReader.ReadSsrc(srtcpBytes);
             uint idx = RtcpReader.SrtcpReadIndex(srtcpBytes, 0);
-            
+
             uint index = idx & ~SrtpContext.E_FLAG;
             int offset = RtcpReader.GetHeaderLen();
 
             byte[] iv = AEAD.GenerateMessageKeyIV(k_s, ssrc, index);
 
             var cipher = new GcmBlockCipher(new AesEngine());
-            byte[] associatedData = srtcpBytes.Take(offset).Concat(srtcpBytes.Skip(srtcpBytes.Length - 4).Take(4)).ToArray(); // associatedData include also index
+            byte[] associatedData = new byte[offset + 4];
+            Buffer.BlockCopy(srtcpBytes, 0, associatedData, 0, offset);
+            Buffer.BlockCopy(srtcpBytes, srtcpBytes.Length - 4, associatedData, offset, 4);
             AEAD.Encrypt(cipher, false, srtcpBytes, offset, srtcpBytes.Length - 4, iv, k_e, n_tag, associatedData);
 
-            string result = Convert.ToHexString(srtcpBytes.Take(srtcpBytes.Length - 4 - n_tag).ToArray()).ToLowerInvariant();
+            int resultLen = srtcpBytes.Length - 4 - n_tag;
+            byte[] resultArr = new byte[resultLen];
+            Buffer.BlockCopy(srtcpBytes, 0, resultArr, 0, resultLen);
+            string result = Convert.ToHexString(resultArr).ToLowerInvariant();
             Assert.AreEqual(expectedRtcp, result);
         }
     }

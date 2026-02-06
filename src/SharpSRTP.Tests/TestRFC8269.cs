@@ -29,7 +29,6 @@ using SharpSRTP.SRTP.Authentication;
 using SharpSRTP.SRTP.Encryption;
 using SharpSRTP.SRTP.Readers;
 using System;
-using System.Linq;
 
 namespace SharpSRTP.Tests
 {
@@ -81,7 +80,8 @@ namespace SharpSRTP.Tests
             int n_tag = protectionProfile.AuthTagLength >> 3;
             byte[] auth = HMAC.GenerateAuthTag(hmac, payload, 0, length + 4);
             System.Buffer.BlockCopy(auth, 0, payload, length, n_tag); // we don't append ROC in SRTP
-            var result = payload.Take(length + n_tag).ToArray();
+            var result = new byte[length + n_tag];
+            Buffer.BlockCopy(payload, 0, result, 0, length + n_tag);
 
             string srtpResult = Convert.ToHexString(result).ToLowerInvariant();
             Assert.AreEqual(expectedSrtp, srtpResult);
@@ -110,7 +110,8 @@ namespace SharpSRTP.Tests
             Buffer.BlockCopy(rtpBytes, 0, result, 0, rtpBytes.Length);
 
             var cipher = new GcmBlockCipher(new AriaEngine());
-            byte[] associatedData = result.Take(offset).ToArray();
+            byte[] associatedData = new byte[offset];
+            Buffer.BlockCopy(result, 0, associatedData, 0, offset);
             AEAD.Encrypt(cipher, true, result, offset, rtpBytes.Length, iv, bk_e, n_tag, associatedData);
 
             string srtpResult = Convert.ToHexString(result).ToLowerInvariant();
