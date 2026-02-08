@@ -5,16 +5,9 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-
-
-#if !NET5_0_OR_GREATER
-using Convert2 = SharpSRTP.Tests.Convert;
-#else
-#endif
 
 namespace SharpSRTP.Benchmarks;
 

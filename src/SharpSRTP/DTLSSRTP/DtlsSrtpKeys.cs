@@ -52,6 +52,9 @@ namespace SharpSRTP.DTLSSRTP
                 || clientWriteMasterSalt.Count != cipherSaltLen
                 || serverWriteMasterKey.Count != cipherKeyLen
                 || serverWriteMasterSalt.Count != cipherSaltLen)
+            {
+                throw new ArgumentException();
+            }
 
             this.ClientWriteMasterKey = clientWriteMasterKey;
             this.ClientWriteMasterSalt = clientWriteMasterSalt;

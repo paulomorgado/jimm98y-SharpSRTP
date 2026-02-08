@@ -158,9 +158,6 @@ namespace SharpSRTP.DTLSSRTP
                 ServerWriteMasterKey:  new byte[cipherKeyLen], 
                 ServerWriteMasterSalt:  new byte[cipherSaltLen]);
 
-            var sharedSecret_ = new byte[sharedSecret.Length];
-            Buffer.BlockCopy(sharedSecret, 0, sharedSecret_, 0, sharedSecret.Length); // outer
-
             if (srtpSecurityParams.Cipher >= SrtpCiphers.DOUBLE_AEAD_AES_128_GCM_AEAD_AES_128_GCM)
             {
                 // we have to maintain separation of the inner and outer keys according to RFC8723
@@ -183,13 +180,18 @@ namespace SharpSRTP.DTLSSRTP
                 Buffer.BlockCopy(sharedSecret, keys.ClientWriteMasterKey.Length + keys.ServerWriteMasterKey.Length + keys.ClientWriteMasterSalt.Length, keys.ServerWriteMasterSalt, 0, keys.ServerWriteMasterSalt.Length);
             }
 
-            return new DtlsSrtpKeys(
+            var clientWriteMasterKey = new ArraySegment<byte>(keys.ClientWriteMasterKey);
+            var clientWriteMasterSalt = new ArraySegment<byte>(keys.ClientWriteMasterSalt);
+            var serverWriteMasterKey = new ArraySegment<byte>(keys.ServerWriteMasterKey);
+            var serverWriteMasterSalt = new ArraySegment<byte>(keys.ServerWriteMasterSalt);
+            var k = new DtlsSrtpKeys(
                 srtpSecurityParams,
-                new ArraySegment<byte>(keys.ClientWriteMasterKey),
-                new ArraySegment<byte>(keys.ClientWriteMasterSalt),
-                new ArraySegment<byte>(keys.ServerWriteMasterKey),
-                new ArraySegment<byte>(keys.ServerWriteMasterSalt),
+                clientWriteMasterKey,
+                clientWriteMasterSalt,
+                serverWriteMasterKey,
+                serverWriteMasterSalt,
                 new ArraySegment<byte>(mki ?? Array.Empty<byte>()));
+            return k;
         }
 
         public static byte[] GenerateMki(int length)
