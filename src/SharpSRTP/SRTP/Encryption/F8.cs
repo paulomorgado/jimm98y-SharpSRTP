@@ -37,13 +37,13 @@ namespace SharpSRTP.SRTP.Encryption
             return iv2;
         }
 
-        private static byte[] GenerateRtpIV(byte[] rtpPacket, uint ROC)
+        private static byte[] GenerateRtpIV(ReadOnlySpan<byte> rtpPacket, uint ROC)
         {
             byte[] iv = GC.AllocateUninitializedArray<byte>(BLOCK_SIZE);
             iv[0] = 0;
 
             // M + PT + SEQ + TS + SSRC
-            Buffer.BlockCopy(rtpPacket, 1, iv, 1, 11);
+            rtpPacket.Slice(1, 11).CopyTo(iv.AsSpan(1, 11));
 
             // ROC
             BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(12, 4), ROC);
