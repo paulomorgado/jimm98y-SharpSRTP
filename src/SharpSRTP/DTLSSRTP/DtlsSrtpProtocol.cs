@@ -180,17 +180,17 @@ namespace SharpSRTP.DTLSSRTP
                 Buffer.BlockCopy(sharedSecret, keys.ClientWriteMasterKey.Length + keys.ServerWriteMasterKey.Length + keys.ClientWriteMasterSalt.Length, keys.ServerWriteMasterSalt, 0, keys.ServerWriteMasterSalt.Length);
             }
 
-            var clientWriteMasterKey = new ArraySegment<byte>(keys.ClientWriteMasterKey);
-            var clientWriteMasterSalt = new ArraySegment<byte>(keys.ClientWriteMasterSalt);
-            var serverWriteMasterKey = new ArraySegment<byte>(keys.ServerWriteMasterKey);
-            var serverWriteMasterSalt = new ArraySegment<byte>(keys.ServerWriteMasterSalt);
+            var clientWriteMasterKey = keys.ClientWriteMasterKey.AsArraySegment();
+            var clientWriteMasterSalt = keys.ClientWriteMasterSalt.AsArraySegment();
+            var serverWriteMasterKey = keys.ServerWriteMasterKey.AsArraySegment();
+            var serverWriteMasterSalt = keys.ServerWriteMasterSalt.AsArraySegment();
             var k = new DtlsSrtpKeys(
                 srtpSecurityParams,
                 clientWriteMasterKey,
                 clientWriteMasterSalt,
                 serverWriteMasterKey,
                 serverWriteMasterSalt,
-                new ArraySegment<byte>(mki ?? Array.Empty<byte>()));
+                mki.AsArraySegment());
             return k;
         }
 

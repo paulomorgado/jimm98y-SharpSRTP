@@ -50,14 +50,17 @@ namespace SharpSRTP.Tests
             Buffer.BlockCopy(rtpBytes, 0, srtpBytes, 0, rtpBytes.Length);
             int ret = context.ProtectRtp(srtpBytes, rtpBytes.Length, out int len);
 
-            string srtpString = Convert.ToHexString(srtpBytes.AsSpan(0, len).ToArray()).ToLowerInvariant();
-            Assert.AreEqual(expectedSrtp, srtpString);
+            var expectedBytes = Convert.FromHexString(expectedSrtp);
+            var actualBytes = srtpBytes.AsSpan(0, len);
+            Assert.IsTrue(expectedBytes.SequenceEqual(actualBytes),
+                $"ProtectRtp output does not match the expected value.\nExpected: {BitConverter.ToString(expectedBytes)}\nActual:   {BitConverter.ToString(actualBytes.ToArray())}");
 
             var decodeContext = DtlsSrtpProtocol.CreateSrtpServerSessionContext(keys);
             ret = decodeContext.UnprotectRtp(srtpBytes, srtpBytes.Length, out int olen);
 
-            string rtpString = Convert.ToHexString(srtpBytes.AsSpan(0, olen).ToArray()).ToLowerInvariant();
-            Assert.AreEqual(rtp, rtpString);
+            var actualUnprotected = srtpBytes.AsSpan(0, olen);
+            Assert.IsTrue(rtpBytes.SequenceEqual(actualUnprotected),
+                $"UnprotectRtp output does not match the expected value.\nExpected: {BitConverter.ToString(rtpBytes)}\nActual:   {BitConverter.ToString(actualUnprotected.ToArray())}");
         }
     }
 }

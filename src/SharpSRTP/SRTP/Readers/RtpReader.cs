@@ -27,12 +27,12 @@ namespace SharpSRTP.SRTP.Readers
     {
         public static uint ReadSsrc(ReadOnlySpan<byte> rtpPacket)
         {
-            return (uint)((rtpPacket[8] << 24) | (rtpPacket[9] << 16) | (rtpPacket[10] << 8) | rtpPacket[11]);
+            return System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(rtpPacket.Slice(8, 4));
         }
 
         public static ushort ReadSequenceNumber(ReadOnlySpan<byte> rtpPacket)
         {
-            return (ushort)((rtpPacket[2] << 8) | rtpPacket[3]);
+            return System.Buffers.Binary.BinaryPrimitives.ReadUInt16BigEndian(rtpPacket.Slice(2, 2));
         }
 
         public static int ReadHeaderLen(ReadOnlySpan<byte> payload)

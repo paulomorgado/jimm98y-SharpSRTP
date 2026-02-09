@@ -43,8 +43,10 @@ namespace SharpSRTP.Tests
             SrtpKeys keys = SrtpProtocol.CreateMasterKeys(cryptoSuite, null, masterKeySalt);
             SrtpSessionContext context = SrtpProtocol.CreateSrtpSessionContext(keys);
 
-            Assert.AreEqual(sk_he, Convert.ToHexString(context.EncodeRtpContext.K_he).ToUpperInvariant());
-            Assert.AreEqual(sk_hs, Convert.ToHexString(context.EncodeRtpContext.K_hs).ToUpperInvariant());
+            var expected_he = Convert.FromHexString(sk_he);
+            var expected_hs = Convert.FromHexString(sk_hs);
+            Assert.IsTrue(context.EncodeRtpContext.K_he.SequenceEqual(expected_he), "K_he mismatch");
+            Assert.IsTrue(context.EncodeRtpContext.K_hs.SequenceEqual(expected_hs), "K_hs mismatch");
 
             byte[] rtpExtensionsBytes = Convert.FromHexString(rtpExtensions.Replace(" ", ""));
             byte[] rtpExtensionsMaskBytes = Convert.FromHexString(rtpExtensionsMask.Replace(" ", ""));
@@ -53,8 +55,9 @@ namespace SharpSRTP.Tests
             int ret = context.EncodeRtpContext.ProtectUnprotectRtpHeaderExtensions(null, rtpExtensionsBytes, rtpExtensionsMaskBytes, ssrc, roc, SrtpContext.GenerateRtpIndex(roc, sequenceNumber));
             Assert.AreEqual(0, ret);
 
-            string encryptedExtensions = Convert.ToHexString(rtpExtensionsBytes).ToUpperInvariant();
-            Assert.AreEqual(expectedEncryptedExtensions, encryptedExtensions);
+            var expectedEncrypted = Convert.FromHexString(expectedEncryptedExtensions);
+            Assert.IsTrue(rtpExtensionsBytes.AsSpan().SequenceEqual(expectedEncrypted),
+                $"Encrypted RTP header extensions mismatch.\nExpected: {BitConverter.ToString(expectedEncrypted)}\nActual:   {BitConverter.ToString(rtpExtensionsBytes)}");
         }
     }
 }

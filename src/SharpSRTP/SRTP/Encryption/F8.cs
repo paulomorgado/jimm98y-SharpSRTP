@@ -20,6 +20,7 @@
 // SOFTWARE.
 
 using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -87,7 +88,7 @@ namespace SharpSRTP.SRTP.Encryption
 
             BinaryExtensions.Xor128(iv2Span, k_s_temp);
 
-            engine.Init(true, new Org.BouncyCastle.Crypto.Parameters.KeyParameter(iv2));
+            engine.Init(true, new KeyParameter(iv2));
             engine.ProcessBlock(iv, 0, iv2, 0);
 
             return iv2;
