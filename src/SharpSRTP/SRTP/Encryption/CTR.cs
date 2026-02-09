@@ -29,7 +29,7 @@ namespace SharpSRTP.SRTP.Encryption
     {
         public const int BLOCK_SIZE = 16;
 
-        public static byte[] GenerateSessionKeyIV(ReadOnlySpan<byte> masterSalt, ulong index, ulong kdr, byte label)
+        public static byte[] GenerateSessionKeyIV(ReadOnlyMemory<byte> masterSalt, ulong index, ulong kdr, byte label)
         {
             byte[] iv = GC.AllocateUninitializedArray<byte>(BLOCK_SIZE);
 

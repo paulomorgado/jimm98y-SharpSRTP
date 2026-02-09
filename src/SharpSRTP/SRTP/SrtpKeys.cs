@@ -28,11 +28,11 @@ namespace SharpSRTP.SRTP
     public class SrtpKeys
     {
         public SrtpProtectionProfileConfiguration ProtectionProfile { get; }
-        public ArraySegment<byte> Mki { get; }
+        public ReadOnlyMemory<byte> Mki { get; }
 
-        public ArraySegment<byte> MasterKey { get; }
-        public ArraySegment<byte> MasterSalt { get; }
-        public ArraySegment<byte> MasterKeySalt { get; }
+        public ReadOnlyMemory<byte> MasterKey { get; }
+        public ReadOnlyMemory<byte> MasterSalt { get; }
+        public ReadOnlyMemory<byte> MasterKeySalt { get; }
 
         public SrtpKeys(SrtpProtectionProfileConfiguration protectionProfile, byte[] masterKeySalt, byte[] mki = default)
         {
@@ -41,11 +41,11 @@ namespace SharpSRTP.SRTP
             this.ProtectionProfile = protectionProfile;
 
             ArgumentNullException.ThrowIfNull(masterKeySalt);
-            this.MasterKeySalt = masterKeySalt;
+            this.MasterKeySalt = masterKeySalt.AsMemory();
 #else
             this.ProtectionProfile = protectionProfile ?? throw new ArgumentNullException(nameof(protectionProfile));
 
-            this.MasterKeySalt = new ArraySegment<byte>(masterKeySalt ?? throw new ArgumentNullException(nameof(masterKeySalt)));
+            this.MasterKeySalt = (masterKeySalt ?? throw new ArgumentNullException(nameof(masterKeySalt))).AsMemory();
 #endif
 
             if (masterKeySalt.Length != (protectionProfile.CipherKeyLength + protectionProfile.CipherSaltLength) >> 3)
@@ -56,7 +56,7 @@ namespace SharpSRTP.SRTP
             MasterKey = MasterKeySalt.Slice(0, ProtectionProfile.CipherKeyLength >> 3);
             MasterSalt = MasterKeySalt.Slice(ProtectionProfile.CipherKeyLength >> 3);
 
-            this.Mki = new ArraySegment<byte>(mki ?? Array.Empty<byte>());
+            this.Mki = (mki ?? Array.Empty<byte>()).AsMemory();
         }
     }
 }

@@ -27,20 +27,20 @@ namespace SharpSRTP.DTLSSRTP
     public class DtlsSrtpKeys
     {
         public SrtpProtectionProfileConfiguration ProtectionProfile { get; }
-        public ArraySegment<byte> Mki { get; }
+        public ReadOnlyMemory<byte> Mki { get; }
 
-        public ArraySegment<byte> ClientWriteMasterKey { get; }
-        public ArraySegment<byte> ClientWriteMasterSalt { get; }
-        public ArraySegment<byte> ServerWriteMasterKey { get; }
-        public ArraySegment<byte> ServerWriteMasterSalt { get; }
+        public ReadOnlyMemory<byte> ClientWriteMasterKey { get; }
+        public ReadOnlyMemory<byte> ClientWriteMasterSalt { get; }
+        public ReadOnlyMemory<byte> ServerWriteMasterKey { get; }
+        public ReadOnlyMemory<byte> ServerWriteMasterSalt { get; }
 
         public DtlsSrtpKeys(
             SrtpProtectionProfileConfiguration protectionProfile,
-            ArraySegment<byte> clientWriteMasterKey,
-            ArraySegment<byte> clientWriteMasterSalt,
-            ArraySegment<byte> serverWriteMasterKey,
-            ArraySegment<byte> serverWriteMasterSalt,
-            ArraySegment<byte> mki = default)
+            ReadOnlyMemory<byte> clientWriteMasterKey,
+            ReadOnlyMemory<byte> clientWriteMasterSalt,
+            ReadOnlyMemory<byte> serverWriteMasterKey,
+            ReadOnlyMemory<byte> serverWriteMasterSalt,
+            ReadOnlyMemory<byte> mki = default)
         {
             this.ProtectionProfile = protectionProfile ?? throw new ArgumentNullException(nameof(protectionProfile));
             this.Mki = mki;
@@ -48,10 +48,10 @@ namespace SharpSRTP.DTLSSRTP
             int cipherKeyLen = protectionProfile.CipherKeyLength >> 3;
             int cipherSaltLen = protectionProfile.CipherSaltLength >> 3;
 
-            if (clientWriteMasterKey.Count != cipherKeyLen
-                || clientWriteMasterSalt.Count != cipherSaltLen
-                || serverWriteMasterKey.Count != cipherKeyLen
-                || serverWriteMasterSalt.Count != cipherSaltLen)
+            if (clientWriteMasterKey.Length != cipherKeyLen
+                || clientWriteMasterSalt.Length != cipherSaltLen
+                || serverWriteMasterKey.Length != cipherKeyLen
+                || serverWriteMasterSalt.Length != cipherSaltLen)
             {
                 throw new ArgumentException();
             }
