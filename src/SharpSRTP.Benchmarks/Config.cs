@@ -16,9 +16,26 @@ internal sealed class Config : ManualConfig
     public Config()
     {
         Runtime[] targetRuntimes = [CoreRuntime.Core10_0, /*CoreRuntime.Core80, */ClrRuntime.Net481];
+        string[] targetVersions = ["", "0.3.1"];
 
-        AddJobs(true, "0.3.1", targetRuntimes);
-        AddJobs(false, "", targetRuntimes);
+        foreach (var version in  targetVersions)
+        {
+            var baseline = string.IsNullOrEmpty(version);
+
+            foreach (var targetRuntime in targetRuntimes)
+            {
+                AddJob(Job.MediumRun
+                    .WithRuntime(targetRuntime)
+                    .WithMsBuildArguments($"/p:LibVersion={version}")
+                    .WithId(string.IsNullOrEmpty(version) ? "_" : version)
+                    .WithBaseline(baseline)
+                )
+                    .WithOrderer(new MethodJobRuntimeOrderer())
+                ;
+
+                baseline = false;
+            }
+        }
 
         AddExporter(BenchmarkDotNet.Exporters.MarkdownExporter.GitHub);
 
@@ -30,23 +47,6 @@ internal sealed class Config : ManualConfig
         AddDiagnoser(BenchmarkDotNet.Diagnosers.MemoryDiagnoser.Default);
 
         AddLogger(BenchmarkDotNet.Loggers.ConsoleLogger.Default);
-
-        void AddJobs(bool baseline, string version, params Runtime[] targetRuntimes)
-        {
-            foreach (var targetRuntime in targetRuntimes)
-            {
-                AddJob(Job.MediumRun
-                    .WithRuntime(targetRuntime)
-                    .WithMsBuildArguments($"/p:LibVersion={version}")
-                    .WithId(string.IsNullOrEmpty(version) ? "this" : version)
-                    .WithBaseline(baseline)
-                )
-                    .WithOrderer(new MethodJobRuntimeOrderer())
-                ;
-
-                baseline = false;
-            }
-        }
     }
 
     private sealed class MethodJobRuntimeOrderer : IOrderer
