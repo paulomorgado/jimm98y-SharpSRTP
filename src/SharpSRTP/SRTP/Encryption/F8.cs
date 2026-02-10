@@ -33,47 +33,58 @@ namespace SharpSRTP.SRTP.Encryption
 
         public static byte[] GenerateRtpMessageKeyIV(IBlockCipher engine, byte[] k_e, byte[] k_s, byte[] rtpPacket, uint ROC)
         {
-            byte[] iv = GenerateRtpIV(rtpPacket, ROC);
+#if NET8_0_OR_GREATER
+            Span<byte> iv = stackalloc byte[BLOCK_SIZE];
+#else
+            var iv = new byte[BLOCK_SIZE];
+#endif
+            GenerateRtpIV(iv, rtpPacket, ROC);
             byte[] iv2 = GenerateIV2(engine, k_e, k_s, iv);
             return iv2;
         }
 
-        private static byte[] GenerateRtpIV(ReadOnlySpan<byte> rtpPacket, uint ROC)
+        private static void GenerateRtpIV(Span<byte> iv, ReadOnlySpan<byte> rtpPacket, uint ROC)
         {
-            byte[] iv = GC.AllocateUninitializedArray<byte>(BLOCK_SIZE);
             iv[0] = 0;
 
             // M + PT + SEQ + TS + SSRC
-            rtpPacket.Slice(1, 11).CopyTo(iv.AsSpan(1, 11));
+            rtpPacket.Slice(1, 11).CopyTo(iv.Slice(1));
 
-            // ROC
-            BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(12, 4), ROC);
-            return iv;
+            // ROC (big-endian)
+            BinaryPrimitives.WriteUInt32BigEndian(iv.Slice(12, 4), ROC);
         }
 
         public static byte[] GenerateRtcpMessageKeyIV(IBlockCipher engine, byte[] k_e, byte[] k_s, ReadOnlySpan<byte> rtcpPacket, uint index)
         {
-            byte[] iv = GenerateRtcpIV(rtcpPacket, index);
+#if NET8_0_OR_GREATER
+            Span<byte> iv = stackalloc byte[BLOCK_SIZE];
+#else
+            var iv = new byte[BLOCK_SIZE];
+#endif
+            GenerateRtcpIV(iv, rtcpPacket, index);
             byte[] iv2 = GenerateIV2(engine, k_e, k_s, iv);
             return iv2;
         }
 
-        private static byte[] GenerateRtcpIV(ReadOnlySpan<byte> rtcpPacket, uint index)
+        private static void GenerateRtcpIV(Span<byte> iv, ReadOnlySpan<byte> rtcpPacket, uint index)
         {
-            byte[] iv = GC.AllocateUninitializedArray<byte>(BLOCK_SIZE);
-
             // 0..0
-            iv.AsSpan(0, 4).Clear();
+            iv.Slice(0, 4).Clear();
 
             // E + SRTCP index
-            BinaryPrimitives.WriteUInt32BigEndian(iv.AsSpan(4, 4), index);
+            BinaryPrimitives.WriteUInt32BigEndian(iv.Slice(4, 4), index);
 
             // V + P + RC + PT + L + SSRC
-            rtcpPacket.Slice(0, 8).CopyTo(iv.AsSpan(BLOCK_SIZE - 8, 8));
-            return iv;
+            rtcpPacket.Slice(0, 8).CopyTo(iv.Slice(BLOCK_SIZE - 8, 8));
         }
 
-        private static byte[] GenerateIV2(IBlockCipher engine, byte[] k_e, byte[] k_s, byte[] iv)
+        private static byte[] GenerateIV2(IBlockCipher engine, byte[] k_e, byte[] k_s,
+#if NET8_0_OR_GREATER
+            ReadOnlySpan<byte>
+#else
+            byte[]
+#endif
+            iv)
         {
             byte[] iv2 = new byte[BLOCK_SIZE];
             var iv2Span = iv2.AsSpan();
@@ -89,7 +100,11 @@ namespace SharpSRTP.SRTP.Encryption
             BinaryExtensions.Xor128(iv2Span, k_s_temp);
 
             engine.Init(true, new KeyParameter(iv2));
+#if NET8_0_OR_GREATER
+            engine.ProcessBlock(iv, iv2);
+#else
             engine.ProcessBlock(iv, 0, iv2, 0);
+#endif
 
             return iv2;
         }

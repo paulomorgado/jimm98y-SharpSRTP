@@ -39,11 +39,6 @@ namespace SharpSRTP.Benchmarks
             uint ssrc = RtpReader.ReadSsrc(rtpBytesSource);
             int offset = RtpReader.ReadHeaderLen(rtpBytesSource);
             ulong index = ((ulong)roc << 16) | sequenceNumber;
-
-            aes1 = new AesEngine();
-            aes2 = new AesEngine();
-            iv = F8.GenerateRtpMessageKeyIV(aes, k_e, k_s, rtpBytesSource, roc);
-            aes2.Init(true, new KeyParameter(k_e));
         }
 
         [Benchmark]
@@ -55,28 +50,6 @@ namespace SharpSRTP.Benchmarks
 
             aes.Init(true, new KeyParameter(k_e));
             F8.Encrypt(aes, rtpBytesSource, offset, rtpBytesSource.Length, iv);
-        }
-
-        private byte[] iv;
-        private AesEngine aes1;
-        private AesEngine aes2;
-        [Benchmark]
-        public void AESF8_Encrypt_1()
-        {
-            byte[] iv = F8.GenerateRtpMessageKeyIV(aes, k_e, k_s, rtpBytesSource, roc);
-        }
-
-        [Benchmark]
-        public void AESF8_Encrypt_2()
-        {
-            aes1.Init(true, new KeyParameter(k_e));
-        }
-
-        [Benchmark]
-        public void AESF8_Encrypt_3()
-        {
-            int offset = RtpReader.ReadHeaderLen(rtpBytesSource);
-            F8.Encrypt(aes2, rtpBytesSource, offset, rtpBytesSource.Length, iv);
         }
     }
 }
