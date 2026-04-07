@@ -151,5 +151,100 @@ namespace SharpSRTP.Tests
             Assert.IsTrue(rtcpBytes.AsSpan().SequenceEqual(unprotectOutput.AsSpan(0, unprotectedLen)),
                 $"RTCP round-trip mismatch.\nExpected: {BitConverter.ToString(rtcpBytes)}\nActual:   {BitConverter.ToString(unprotectOutput, 0, unprotectedLen)}");
         }
+
+        /// <summary>
+        /// Yields all registered crypto suite names, excluding misspelled duplicates.
+        /// </summary>
+        public static IEnumerable<object[]> CryptoSuiteTestData
+        {
+            get
+            {
+                yield return new object[] { SrtpCryptoSuites.AES_CM_128_HMAC_SHA1_80 };
+                yield return new object[] { SrtpCryptoSuites.AES_CM_128_HMAC_SHA1_32 };
+                yield return new object[] { SrtpCryptoSuites.F8_128_HMAC_SHA1_80 };
+                yield return new object[] { SrtpCryptoSuites.AES_192_CM_HMAC_SHA1_80 };
+                yield return new object[] { SrtpCryptoSuites.AES_192_CM_HMAC_SHA1_32 };
+                yield return new object[] { SrtpCryptoSuites.AES_256_CM_HMAC_SHA1_80 };
+                yield return new object[] { SrtpCryptoSuites.AES_256_CM_HMAC_SHA1_32 };
+                yield return new object[] { SrtpCryptoSuites.AEAD_AES_128_GCM };
+                yield return new object[] { SrtpCryptoSuites.AEAD_AES_256_GCM };
+                yield return new object[] { SrtpCryptoSuites.SEED_CTR_128_HMAC_SHA1_80 };
+                yield return new object[] { SrtpCryptoSuites.SEED_128_CCM_80 };
+                yield return new object[] { SrtpCryptoSuites.SEED_128_GCM_96 };
+            }
+        }
+
+        [DynamicData(nameof(CryptoSuiteTestData))]
+        [TestMethod]
+        public void Test_Srtp_RoundTrip_AllCryptoSuites(string cryptoSuite)
+        {
+            // Arrange
+
+            byte[] rtpBytes = new byte[]
+            {
+                0x80, 0x60, 0x00, 0x01,
+                0x00, 0x00, 0x00, 0xA0,
+                0xDE, 0xAD, 0xBE, 0xEF,
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+                0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
+            };
+
+            var keys = SrtpProtocol.CreateMasterKeys(cryptoSuite);
+            var context = SrtpProtocol.CreateSrtpSessionContext(keys);
+
+            // Act
+
+            byte[] protectOutput = new byte[context.CalculateRequiredSrtpPayloadLength(rtpBytes.Length)];
+            int ret = context.ProtectRtp(new ReadOnlyBytes(rtpBytes), protectOutput, out int protectedLen);
+
+            // Assert
+
+            Assert.AreEqual(0, ret, $"ProtectRtp failed for {cryptoSuite} with error code {ret}.");
+
+            byte[] unprotectOutput = new byte[protectedLen];
+            ret = context.UnprotectRtp(new ReadOnlyBytes(protectOutput, 0, protectedLen), unprotectOutput, out int unprotectedLen);
+            Assert.AreEqual(0, ret, $"UnprotectRtp failed for {cryptoSuite} with error code {ret}.");
+
+            Assert.IsTrue(rtpBytes.AsSpan().SequenceEqual(unprotectOutput.AsSpan(0, unprotectedLen)),
+                $"RTP round-trip mismatch for {cryptoSuite}.\nExpected: {BitConverter.ToString(rtpBytes)}\nActual:   {BitConverter.ToString(unprotectOutput, 0, unprotectedLen)}");
+        }
+
+        [DynamicData(nameof(CryptoSuiteTestData))]
+        [TestMethod]
+        public void Test_Srtcp_RoundTrip_AllCryptoSuites(string cryptoSuite)
+        {
+            // Arrange
+
+            byte[] rtcpBytes = new byte[]
+            {
+                0x80, 0xC8, 0x00, 0x06,
+                0xCA, 0xFE, 0xBA, 0xBE,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x01
+            };
+            byte[] inputCopy = (byte[])rtcpBytes.Clone();
+
+            var keys = SrtpProtocol.CreateMasterKeys(cryptoSuite);
+            var context = SrtpProtocol.CreateSrtpSessionContext(keys);
+
+            // Act
+
+            byte[] protectOutput = new byte[context.CalculateRequiredSrtcpPayloadLength(rtcpBytes.Length)];
+            int ret = context.ProtectRtcp(new ReadOnlyBytes(rtcpBytes), protectOutput, out int protectedLen);
+
+            // Assert
+
+            Assert.AreEqual(0, ret, $"ProtectRtcp failed for {cryptoSuite} with error code {ret}.");
+            Assert.IsTrue(rtcpBytes.AsSpan().SequenceEqual(inputCopy),
+                $"Input buffer was modified during ProtectRtcp for {cryptoSuite}.");
+
+            byte[] unprotectOutput = new byte[protectedLen];
+            ret = context.UnprotectRtcp(new ReadOnlyBytes(protectOutput, 0, protectedLen), unprotectOutput, out int unprotectedLen);
+            Assert.AreEqual(0, ret, $"UnprotectRtcp failed for {cryptoSuite} with error code {ret}.");
+
+            Assert.IsTrue(rtcpBytes.AsSpan().SequenceEqual(unprotectOutput.AsSpan(0, unprotectedLen)),
+                $"RTCP round-trip mismatch for {cryptoSuite}.\nExpected: {BitConverter.ToString(rtcpBytes)}\nActual:   {BitConverter.ToString(unprotectOutput, 0, unprotectedLen)}");
+        }
     }
 }
